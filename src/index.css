@@ -1,0 +1,331 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+  --bg-dark:       #010d1f;
+  --ice-blue:      #7ecef4;
+  --ice-bright:    #a8edfc;
+  --ice-deep:      #2c6fa8;
+  --ice-pale:      #cce8ff;
+  --frost-white:   #e8f4fd;
+  --neon-red:      #e05c5c;
+  --text-main:     #d6eeff;
+  --hud-bg:        rgba(2, 18, 40, 0.96);
+  --hud-border:    #1a4a7a;
+  --overlay-bg:    rgba(1, 12, 30, 0.93);
+  --title-color:   #a8edfc;
+  --title-shadow:  #2c6fa8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Press Start 2P', monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Fullscreen 16:9 game container ── */
+.game-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: calc(100vh * (16 / 9));
+  max-height: calc(100vw * (9 / 16));
+  background: var(--bg-dark);
+  overflow: hidden;
+  /* Icy crosshair cursor */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%237ecef4' stroke-width='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='12' stroke='%237ecef4' stroke-width='2'/%3E%3Cline x1='16' y1='20' x2='16' y2='30' stroke='%237ecef4' stroke-width='2'/%3E%3Cline x1='2' y1='16' x2='12' y2='16' stroke='%237ecef4' stroke-width='2'/%3E%3Cline x1='20' y1='16' x2='30' y2='16' stroke='%237ecef4' stroke-width='2'/%3E%3C/svg%3E") 16 16, crosshair;
+  box-shadow: 0 0 60px rgba(80, 160, 255, 0.3), 0 0 120px rgba(0, 0, 0, 0.8);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* ── CRT Scanline overlay ── */
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 20, 60, 0.12) 0px,
+    rgba(0, 20, 60, 0.12) 1px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0) 3px
+  );
+  box-shadow:
+    inset 0 0 80px rgba(0, 0, 0, 0.7),
+    inset 0 0 20px rgba(80, 160, 255, 0.06);
+  z-index: 10;
+}
+
+/* ── Screen flash (ice-blue tint) ── */
+.flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #a8edfc 0%, #3a9fd8 100%);
+  opacity: 0;
+  z-index: 40;
+  pointer-events: none;
+  transition: opacity 0.06s;
+}
+
+/* ── HUD Top ── */
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+  font-size: 1.3vmin;
+  pointer-events: none;
+}
+
+/* ── HUD Bottom bar ── */
+.hud-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 10%;
+  background: var(--hud-bg);
+  border-top: 2px solid var(--hud-border);
+  display: flex;
+  align-items: center;
+  padding: 0 3%;
+  justify-content: space-between;
+  z-index: 20;
+  font-size: 1.2vmin;
+  color: var(--frost-white);
+}
+
+.hud-left,
+.hud-right,
+.hud-center { display: flex; flex-direction: column; gap: 5px; }
+.hud-right  { text-align: right; }
+.hud-center { flex-direction: row; gap: 4px; align-items: center; }
+
+/* Hit/miss tracker boxes */
+.hit-box {
+  width: 2vmin;
+  height: 2vmin;
+  border: 2px solid #1a3a5a;
+  background: #091828;
+  border-radius: 2px;
+}
+.hit-box.hit  { background: var(--ice-blue);   border-color: var(--ice-bright); }
+.hit-box.miss { background: var(--frost-white); border-color: #aac8e0; }
+
+.text-highlight { color: var(--ice-bright); }
+
+/* ── Ammo + Bomb group ── */
+.hud-ammo-bomb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── Snowflake ammo icons ── */
+.ammo-container {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.snowflake-ammo {
+  font-size: 2.2vmin;
+  color: var(--ice-bright);
+  text-shadow: 0 0 8px var(--ice-blue), 0 0 14px #3af;
+  transition: opacity 0.15s, transform 0.15s, filter 0.15s;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.snowflake-ammo.spent {
+  opacity: 0.18;
+  filter: grayscale(1) brightness(0.4);
+  transform: scale(0.75);
+  text-shadow: none;
+}
+
+/* ── Blizzard Bomb icon ── */
+.bomb-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  font-size: 2.2vmin;
+  line-height: 1;
+  gap: 1px;
+  transition: transform 0.15s, filter 0.15s;
+  user-select: none;
+}
+
+.bomb-icon.ready {
+  filter: drop-shadow(0 0 5px #7ecef4) drop-shadow(0 0 10px #a8edfc);
+  animation: bomb-pulse 1.8s ease-in-out infinite;
+}
+
+.bomb-icon.used {
+  opacity: 0.22;
+  filter: grayscale(1);
+  animation: none;
+  cursor: default;
+}
+
+.bomb-icon.ready:hover { transform: scale(1.25); }
+
+.bomb-label {
+  font-size: 0.65vmin;
+  color: var(--ice-bright);
+  letter-spacing: 1px;
+  font-family: 'Press Start 2P', monospace;
+}
+
+@keyframes bomb-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px #7ecef4) drop-shadow(0 0 8px #a8edfc); }
+  50%       { filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 20px #7ecef4); }
+}
+
+/* ── Overlay screens (menu / game over / round start) ── */
+.overlay-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay-bg);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Subtle frost vignette */
+  box-shadow: inset 0 0 80px rgba(80, 160, 255, 0.08);
+}
+
+/* Decorative large snowflake */
+.snowflake-deco {
+  font-size: 6vmin;
+  color: var(--ice-blue);
+  text-shadow: 0 0 20px var(--ice-bright), 0 0 40px #3af;
+  margin-bottom: 2vh;
+  animation: spin-flake 12s linear infinite;
+}
+
+@keyframes spin-flake {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+/* Title */
+.title {
+  color: var(--title-color);
+  font-size: 4vmin;
+  margin-bottom: 3vh;
+  text-shadow:
+    3px 3px 0 var(--title-shadow),
+    0 0 20px var(--ice-bright),
+    0 0 40px var(--ice-blue);
+  letter-spacing: 3px;
+  animation: title-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes title-glow {
+  from { text-shadow: 3px 3px 0 var(--title-shadow), 0 0 15px var(--ice-bright), 0 0 30px var(--ice-blue); }
+  to   { text-shadow: 3px 3px 0 var(--title-shadow), 0 0 25px var(--ice-bright), 0 0 55px var(--ice-blue); }
+}
+
+.game-over-title {
+  color: #e05c5c;
+  text-shadow: 3px 3px 0 #7a1a1a, 0 0 20px #ff8888;
+  animation: none;
+}
+
+.subtitle {
+  font-size: 1.2vmin;
+  color: #90caf9;
+  margin-bottom: 4vh;
+  max-width: 65%;
+  line-height: 2;
+}
+
+.footer-text {
+  font-size: 1vmin;
+  color: #4a8ab8;
+  margin-top: 4vh;
+  letter-spacing: 2px;
+}
+
+/* ── Menu options ── */
+.menu-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5vh;
+  font-size: 1.7vmin;
+}
+
+.menu-opt {
+  cursor: pointer;
+  color: var(--frost-white);
+  transition: color 0.2s, transform 0.15s, text-shadow 0.2s;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.menu-opt:hover {
+  color: var(--ice-bright);
+  transform: scale(1.06);
+  text-shadow: 0 0 12px var(--ice-bright), 0 0 24px var(--ice-blue);
+  border-color: rgba(126, 206, 244, 0.3);
+  background: rgba(126, 206, 244, 0.06);
+}
+
+/* Round start overlay — lighter tint */
+.round-start-screen {
+  background: rgba(1, 14, 35, 0.65);
+}
+
+/* ── HUD Buttons ── */
+.btn {
+  pointer-events: auto;
+  background: rgba(44, 111, 168, 0.15);
+  border: 1px solid var(--ice-deep);
+  color: var(--ice-blue);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1vmin;
+  padding: 7px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-left: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn:hover {
+  background: rgba(44, 111, 168, 0.35);
+  box-shadow: 0 0 10px rgba(126, 206, 244, 0.4);
+}
